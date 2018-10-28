@@ -758,6 +758,80 @@ void FTL_dnssec(int status, int id)
 	disable_thread_lock();
 }
 
+void FTL_query_error(unsigned int rcode, int id)
+{
+	// Process upstream error messages
+
+	// Enable thread lock
+	enable_thread_lock();
+
+	// Search for corresponding query identified by ID
+	bool found = false;
+
+	// Search match in known queries
+	// See comments in FTL_forwarded() for further details about this loop
+	validate_access("queries", counters.queries-1, false, __LINE__, __FUNCTION__, __FILE__);
+	int i,until = MAX(0, counters.queries-MAXITER);
+	for(i = counters.queries-1; i >= until; i--)
+	{
+		// Check both UUID and generation of this query
+		if(queries[i].id == id)
+		{
+			found = true;
+			break;
+		}
+	}
+
+	if(!found)
+	{
+		// This may happen e.g. if the original query was an unhandled query type
+		disable_thread_lock();
+	}
+
+	// Translate dnsmasq's rcode into something we can use
+	char *rcodestr = NULL;
+	bool alloc = false;
+	unsigned char reply;
+	switch(rcode)
+	{
+		case SERVFAIL:
+			rcodestr = "SERVFAIL";
+			reply = REPLY_SERVFAIL;
+			break;
+		case REFUSED:
+			rcodestr = "REFUSED";
+			reply = REPLY_REFUSED;
+			break;
+		case NOTIMP:
+			rcodestr = "NOT IMPLEMENTED";
+			reply = REPLY_NOTIMP;
+			break;
+		default:
+			if(debug && asprintf(&rcodestr, "Unknown error type (%u)", rcode) > -1)
+				alloc = true;
+			reply = REPLY_OTHER;
+			break;
+	}
+
+	// Set reply status
+	queries[i].reply = reply;
+
+	// Debug logging
+	if(debug)
+	{
+		int domainID = queries[i].domainID;
+		validate_access("domains", domainID, true, __LINE__, __FUNCTION__, __FILE__);
+		logg("**** got error report for %s: %s (ID %i)", domains[domainID].domain, rcodestr, id);
+	}
+
+	// If we allocated memory (due to an unknown rcode in debug mode),
+	// we free it here
+	if(alloc)
+		free(rcodestr);
+
+	disable_thread_lock();
+}
+
 void FTL_header_ADbit(unsigned char header4, int id)
 {
 	// Don't analyze anything if in PRIVACY_NOSTATS mode
