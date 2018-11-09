@@ -21,7 +21,8 @@ static void detect_blocked_IP(unsigned short flags, char* answer, int queryID);
 static void query_externally_blocked(int i);
 static int findQueryID(int id);
 
-char flagnames[28][12] = {"F_IMMORTAL ", "F_NAMEP ", "F_REVERSE ", "F_FORWARD ", "F_DHCP ", "F_NEG ", "F_HOSTS ", "F_IPV4 ", "F_IPV6 ", "F_BIGNAME ", "F_NXDOMAIN ", "F_CNAME ", "F_DNSKEY ", "F_CONFIG ", "F_DS ", "F_DNSSECOK ", "F_UPSTREAM ", "F_RRNAME ", "F_SERVER ", "F_QUERY ", "F_NOERR ", "F_AUTH ", "F_DNSSEC ", "F_KEYTAG ", "F_SECSTAT ", "F_NO_RR ", "F_IPSET ", "F_NOEXTRA "};
+#define NFLAGS 28
+char flagnames[NFLAGS][12] = {"F_IMMORTAL ", "F_NAMEP ", "F_REVERSE ", "F_FORWARD ", "F_DHCP ", "F_NEG ", "F_HOSTS ", "F_IPV4 ", "F_IPV6 ", "F_BIGNAME ", "F_NXDOMAIN ", "F_CNAME ", "F_DNSKEY ", "F_CONFIG ", "F_DS ", "F_DNSSECOK ", "F_UPSTREAM ", "F_RRNAME ", "F_SERVER ", "F_QUERY ", "F_NOERR ", "F_AUTH ", "F_DNSSEC ", "F_KEYTAG ", "F_SECSTAT ", "F_NO_RR ", "F_IPSET ", "F_NOEXTRA "};
 
 void FTL_new_query(unsigned int flags, char *name, struct all_addr *addr, char *types, int id, char type)
 {
@@ -804,9 +805,9 @@ void print_flags(unsigned int flags)
 {
 	// Debug function, listing resolver flags in clear text
 	// e.g. "Flags: F_FORWARD F_NEG F_IPV6"
-	unsigned int i;
-	char *flagstr = calloc(256,sizeof(char));
-	for(i = 0; i < sizeof(flags)*8; i++)
+	unsigned char i;
+	char *flagstr = calloc(256, sizeof(char));
+	for(i = 0; i < NFLAGS; i++)
 		if(flags & (1u << i))
 			strcat(flagstr, flagnames[i]);
 	logg("     Flags: %s", flagstr);
